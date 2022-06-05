@@ -69,6 +69,7 @@ Token* get_token(Lexer* lexer) {
                 token = init_token(T_RGRAFFA, current_char(lexer));
                 return advance_token(lexer, token);
                 break;
+            default: return init_token(T_EOF, "\0");break;
         }
     }
 }
@@ -82,8 +83,41 @@ char* current_char(Lexer* lexer) {
     return string;
 }
 
-/*
+Token* get_id(Lexer* lexer) {
+    advance(lexer);
+    char* id = calloc(1, sizeof(char));
+    id[0] = '\0';
+
+    while (isalnum(lexer->c)) {
+        char* c = current_char(lexer);
+        id = realloc(id, (strlen(id)+strlen(c)+1) * sizeof(char));
+        strcat(id, c);
+        advance(lexer);
+    }
+
+    advance(lexer);
+    return init_token(T_ID, id);
+}
+
 Token* get_string(Lexer* lexer) {
+    advance(lexer);
+    char* string = calloc(1, sizeof(char));
+    string[0] = '\0';
+
+    while (lexer->c != '"') {
+        char* c = current_char(lexer);
+        string = realloc(string, (strlen(string)+strlen(c)+1) * sizeof(char));
+        strcat(string, c);
+        advance(lexer);
+    }
+
+    advance(lexer);
+    return init_token(T_STRING, string);
+}
+
+/*
+Token* string(Lexer* lexer) {
 
 }
 */
+

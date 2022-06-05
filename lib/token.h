@@ -19,4 +19,5 @@ typedef struct TOKEN_STRUCT {
 } Token;
 
 Token* init_token(int type, char* value);
+
 #endif
