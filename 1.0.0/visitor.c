@@ -1,86 +1,143 @@
-#include "include/visitor.h"
-#include "include/scope.h"
+#include "lib/visitor.h"
+#include "lib/scope.h"
 #include <stdio.h>
 #include <string.h>
+#define BUFFER 50
 
+char stdin_buffer[BUFFER];
 
-static AST_T* builtin_function_print(visitor_T* visitor, AST_T** args, int args_size)
+static AST* builtin_function_print(Visitor* visitor, AST** args, int args_size)
 {
     for (int i = 0; i < args_size; i++)
     {
-        AST_T* visited_ast = visitor_visit(visitor, args[i]);
+        AST* visited_ast = visit(visitor, args[i]);
 
         switch (visited_ast->type)
         {
-            case AST_STRING: printf("%s\n", visited_ast->string_value); break;
-            default: printf("%p\n", visited_ast); break;
+            case AST_STR: printf("%s\n", visited_ast->str_value); break;
         }
     }
 
     return init_ast(AST_NOOP);
 }
 
-static AST_T* builtin_function_exit(visitor_T* visitor, AST_T** args, int args_size)
+static AST* builtin_function_shell()
+{
+    int buf = 0;
+    char cmd[50];
+    char c;
+ 
+        do {
+            c=getchar();
+            cmd[buf] = c;
+            buf++;
+        } while(c != '\n' || buf == BUFFER-1);
+
+        cmd[buf] = '\0';
+
+        system(cmd);
+
+
+    return init_ast(AST_NOOP);
+}
+
+static AST* builtin_function_write_buffer()
+{
+    int buf = 0;
+    char c;
+ 
+    do {
+        c=getchar();
+        stdin_buffer[buf] = c;
+        buf++;
+    } while(c != '\n' || buf == BUFFER-1);
+
+    stdin_buffer[buf] = '\0';
+
+    return init_ast(AST_NOOP);
+}
+
+static AST* builtin_function_read_buffer()
+{
+    printf("%s", stdin_buffer);
+
+    return init_ast(AST_NOOP);
+}
+
+static AST* builtin_function_pause()
+{
+    char c;
+    do {
+        c = getch();
+    } while(c != '\n');
+
+    return init_ast(AST_NOOP);
+}
+
+static AST* builtin_function_comment(Visitor* visitor, AST** args, int args_size)
+{
+    return init_ast(AST_NOOP);
+}
+
+static AST* builtin_function_exit(Visitor* visitor, AST** args, int args_size)
 {
     for (int i = 0; i < args_size; i++)
     {
-        AST_T* visited_ast = visitor_visit(visitor, args[i]);
+        AST* visited_ast = visit(visitor, args[i]);
 
         switch (visited_ast->type)
         {
-            case AST_NOOP: printf("You exited\n"); exit(0); break;
-            default: printf("%p\n", visited_ast); break;
+            case AST_NOOP: exit(0); break;
         }
     }
 
     return init_ast(AST_NOOP);
 }
 
-static AST_T* builtin_function_clear(visitor_T* visitor, AST_T** args, int args_size)
+static AST* builtin_function_clear(Visitor* visitor, AST** args, int args_size)
 {
     for (int i = 0; i < args_size; i++)
     {
-        AST_T* visited_ast = visitor_visit(visitor, args[i]);
+        AST* visited_ast = visit(visitor, args[i]);
 
         switch (visited_ast->type)
         {
-            case AST_NOOP: system("clear"); break;
-            default: printf("%p\n", visited_ast); break;
+            case AST_NOOP: system("cls"); break;
         }
     }
 
     return init_ast(AST_NOOP);
 }
 
-visitor_T* init_visitor()
+Visitor* init_visitor()
 {
-    visitor_T* visitor = calloc(1, sizeof(struct VISITOR_STRUCT));
+    Visitor* visitor = calloc(1, sizeof(struct VISITOR_STRUCT));
 
     return visitor;
 }
 
-AST_T* visitor_visit(visitor_T* visitor, AST_T* node)
+AST* visit(Visitor* visitor, AST* node)
 {
     switch (node->type)
     {
-        case AST_VARIABLE_DEFINITION: return visitor_visit_variable_definition(visitor, node); break;
-        case AST_FUNCTION_DEFINITION: return visitor_visit_function_definition(visitor, node); break;
-        case AST_VARIABLE: return visitor_visit_variable(visitor, node); break;
-        case AST_FUNCTION_CALL: return visitor_visit_function_call(visitor, node); break;
-        case AST_STRING: return visitor_visit_string(visitor, node); break;
-        case AST_COMPOUND: return visitor_visit_compound(visitor, node); break;
+        case AST_VARDEF: return visit_vardef(visitor, node); break;
+        case AST_FUNDEF: return visit_fundef(visitor, node); break;
+        case AST_VARIABLE: return visit_variable(visitor, node); break;
+        case AST_FUN: return visit_fun(visitor, node); break;
+        case AST_STR: return visit_str(visitor, node); break;
+        case AST_COMP: return visit_compound(visitor, node); break;
         case AST_NOOP: return node; break;
     }
 
-    printf("Uncaught statement of type `%d`\n", node->type);
+    printf("Tipo `%d` indefinito\n", node->type);
     exit(1);
 
     return init_ast(AST_NOOP);
 }
 
-AST_T* visitor_visit_variable_definition(visitor_T* visitor, AST_T* node)
+AST* visit_vardef(Visitor* visitor, AST* node)
 {
-    scope_add_variable_definition(
+    add_vardef(
         node->scope,
         node        
     ); 
@@ -88,9 +145,9 @@ AST_T* visitor_visit_variable_definition(visitor_T* visitor, AST_T* node)
     return node;
 }
 
-AST_T* visitor_visit_function_definition(visitor_T* visitor, AST_T* node)
+AST* visit_fundef(Visitor* visitor, AST* node)
 {
-    scope_add_function_definition(
+    add_fundef(
         node->scope,
         node        
     );
@@ -98,83 +155,93 @@ AST_T* visitor_visit_function_definition(visitor_T* visitor, AST_T* node)
     return node;
 }
 
-AST_T* visitor_visit_variable(visitor_T* visitor, AST_T* node)
+AST* visit_variable(Visitor* visitor, AST* node)
 {
-    AST_T* vdef = scope_get_variable_definition(
+    AST* vdef = get_vardef(
         node->scope,
-        node->variable_name
+        node->name
     );
     
     if (vdef != (void*) 0)
-        return visitor_visit(visitor, vdef->variable_definition_value);
+        return visit(visitor, vdef->vardef_value);
 
-    printf("Undefined variable `%s`\n", node->variable_name);
+    printf("Variabile `%s` non definita\n", node->name);
     exit(1);
 }
 
-AST_T* visitor_visit_function_call(visitor_T* visitor, AST_T* node)
+AST* visit_fun(Visitor* visitor, AST* node)
 {
-    if (strcmp(node->function_call_name, "print") == 0)
+    if (strcmp(node->fun_name, "print") == 0)
     {
-        return builtin_function_print(visitor, node->function_call_arguments, node->function_call_arguments_size);
+        return builtin_function_print(visitor, node->fun_args, node->fun_args_size);
     }
 
-    if (strcmp(node->function_call_name, "exit") == 0)
+    if (strcmp(node->fun_name, "exit") == 0)
     {
-        return builtin_function_exit(visitor, node->function_call_arguments, node->function_call_arguments_size);
+        return builtin_function_exit(visitor, node->fun_args, node->fun_args_size);
     }
 
-    if (strcmp(node->function_call_name, "clear") == 0)
+    if (strcmp(node->fun_name, "clear") == 0)
     {
-        return builtin_function_clear(visitor, node->function_call_arguments, node->function_call_arguments_size);
+        return builtin_function_clear(visitor, node->fun_args, node->fun_args_size);
+    }
+    if (strcmp(node->fun_name, "exec") == 0)
+    {
+        return builtin_function_shell();
+    }
+    if (strcmp(node->fun_name, "write") == 0)
+    {
+        return builtin_function_write_buffer();
+    }
+    if (strcmp(node->fun_name, "read") == 0)
+    {
+        return builtin_function_read_buffer();
+    }/*
+    if (strcmp(node->fun_name, "pause") == 0)
+    {
+        return builtin_function_pause();
+    }*/
+    if (strcmp(node->fun_name, "comment") == 0)
+    {
+        return builtin_function_comment(visitor, node->fun_args, node->fun_args_size);
     }
 
-    AST_T* fdef = scope_get_function_definition(
+
+    AST* fdef = get_fundef(
         node->scope,
-        node->function_call_name
+        node->fun_name
     );
 
     if (fdef == (void*)0)
     {
-        printf("Undefined method `%s`\n", node->function_call_name);
+        printf("Metodo `%s` indefinito\n", node->fun_name);
         exit(1);
     }
 
-    for (int i = 0; i < (int) node->function_call_arguments_size; i++)
+    for (int i = 0; i < (int) node->fun_args_size; i++)
     {
-        // grab the variable from the function definition arguments
-        AST_T* ast_var = (AST_T*) fdef->function_definition_args[i];
-
-        // grab the value from the function call arguments
-        AST_T* ast_value = (AST_T*) node->function_call_arguments[i];
-
-        // create a new variable definition with the value of the argument
-        // in the function call.
-        AST_T* ast_vardef = init_ast(AST_VARIABLE_DEFINITION);
-        ast_vardef->variable_definition_value = ast_value;
-
-        // copy the name from the function definition argument into the new
-        // variable definition
-        ast_vardef->variable_definition_variable_name = (char*) calloc(strlen(ast_var->variable_name) + 1, sizeof(char));
-        strcpy(ast_vardef->variable_definition_variable_name, ast_var->variable_name);
-
-        // push our variable definition into the function body scope.
-        scope_add_variable_definition(fdef->function_definition_body->scope, ast_vardef);
+        AST* ast_var = (AST*) fdef->fun_args[i];
+        AST* ast_value = (AST*) node->fun_args[i];
+        AST* ast_vardef = init_ast(AST_VARDEF);
+        ast_vardef->vardef_value = ast_value;
+        ast_vardef->vardef_name = (char*) calloc(strlen(ast_var->name) + 1, sizeof(char));
+        strcpy(ast_vardef->vardef_name, ast_var->name);
+        add_vardef(fdef->fundef_body->scope, ast_vardef);
     }
     
-    return visitor_visit(visitor, fdef->function_definition_body);
+    return visit(visitor, fdef->fundef_body);
 }
 
-AST_T* visitor_visit_string(visitor_T* visitor, AST_T* node)
+AST* visit_str(Visitor* visitor, AST* node)
 {
     return node;
 }
 
-AST_T* visitor_visit_compound(visitor_T* visitor, AST_T* node)
+AST* visit_compound(Visitor* visitor, AST* node)
 {
     for (int i = 0; i < node->compound_size; i++)
     {
-        visitor_visit(visitor, node->compound_value[i]);
+        visit(visitor, node->compound_value[i]);
     }
 
     return init_ast(AST_NOOP);

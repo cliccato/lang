@@ -1,14 +1,15 @@
 #include <stdio.h>
 #include <string.h>
-#include "include/lexer.h"
-#include "include/parser.h"
-#include "include/visitor.h"
-#include "include/io.h"
+#include "lib/lexer.h"
+#include "lib/parser.h"
+#include "lib/visitor.h"
+#include "lib/io.h"
 
-#define MAX_LIMIT 20
+#define MAX_LIMIT 50
 void print_help()
 {
-    printf("Usage:\nhello.out <filename>\n");
+    printf("<mc> per aprire la shell\n");
+    printf("<mc> <files> per eseguire i file\n");
     exit(1);
 }
 
@@ -17,15 +18,15 @@ int main(int argc, char* argv[])
     if (argc >= 2){
         for(int i = 1; i < argc; i++){
             int len = strlen(argv[i]);
-            char* last_four = &argv[i][len-6];
-            if(strcmp(last_four,".hello") == 0){
-                                lexer_T* lexer = init_lexer(
-                    get_file_contents(argv[i])
+            char* last_four = &argv[i][len-3];
+            if(strcmp(last_four,".mc") == 0){
+                                Lexer* lexer = init_lexer(
+                    file_contents(argv[i])
                 );
-                parser_T* parser = init_parser(lexer);
-                AST_T* root = parser_parse(parser, parser->scope);
-                visitor_T* visitor = init_visitor();
-                visitor_visit(visitor, root);
+                Parser* parser = init_parser(lexer);
+                AST* root = parse(parser, parser->scope);
+                Visitor* visitor = init_visitor();
+                visit(visitor, root);
             }
 
             else {
@@ -36,13 +37,13 @@ int main(int argc, char* argv[])
     else {
         char input[MAX_LIMIT];
         while(1){
-            printf("Welcome to the hello language v. 0.0.1!\nCreated by sebbekarlsson\n>>> ");
+            printf("Shell $ ");
             fgets(input,MAX_LIMIT, stdin);
-            lexer_T* lexer = init_lexer(input);
-            parser_T* parser = init_parser(lexer);
-            AST_T* root = parser_parse(parser, parser->scope);
-            visitor_T* visitor = init_visitor();
-            visitor_visit(visitor, root);
+            Lexer* lexer = init_lexer(input);
+            Parser* parser = init_parser(lexer);
+            AST* root = parse(parser, parser->scope);
+            Visitor* visitor = init_visitor();
+            visit(visitor, root);
         }
     }
     return 0;

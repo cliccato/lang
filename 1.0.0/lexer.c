@@ -1,13 +1,13 @@
-#include "include/lexer.h"
+#include "lib/lexer.h"
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdio.h>
 
 
-lexer_T* init_lexer(char* contents)
+Lexer* init_lexer(char* contents)
 {
-    lexer_T* lexer = calloc(1, sizeof(struct LEXER_STRUCT));
+    Lexer* lexer = calloc(1, sizeof(struct LEXER_STRUCT));
     lexer->contents = contents;
     lexer->i = 0;
     lexer->c = contents[lexer->i];
@@ -15,7 +15,7 @@ lexer_T* init_lexer(char* contents)
     return lexer;
 }
 
-void lexer_advance(lexer_T* lexer)
+void advance(Lexer* lexer)
 {
     if (lexer->c != '\0' && lexer->i < strlen(lexer->contents))
     {
@@ -24,88 +24,88 @@ void lexer_advance(lexer_T* lexer)
     }
 }
 
-void lexer_skip_whitespace(lexer_T* lexer)
+void skip_whitespace(Lexer* lexer)
 {
     while (lexer->c == ' ' || lexer->c == 10)
     {
-        lexer_advance(lexer);
+        advance(lexer);
     }
 }
 
-token_T* lexer_get_next_token(lexer_T* lexer)
+Token* get_next_token(Lexer* lexer)
 {
     while (lexer->c != '\0' && lexer->i < strlen(lexer->contents))
     {
         if (lexer->c == ' ' || lexer->c == 10)
-            lexer_skip_whitespace(lexer);
+            skip_whitespace(lexer);
 
         if (isalnum(lexer->c))
-            return lexer_collect_id(lexer);
+            return collect_id(lexer);
 
         if (lexer->c == '"')
-            return lexer_collect_string(lexer);
+            return collect_str(lexer);
 
         switch (lexer->c)
         {
-            case '=': return lexer_advance_with_token(lexer, init_token(TOKEN_EQUALS, lexer_get_current_char_as_string(lexer))); break;
-            case ';': return lexer_advance_with_token(lexer, init_token(TOKEN_SEMI, lexer_get_current_char_as_string(lexer))); break;
-            case '(': return lexer_advance_with_token(lexer, init_token(TOKEN_LPAREN, lexer_get_current_char_as_string(lexer))); break;
-            case ')': return lexer_advance_with_token(lexer, init_token(TOKEN_RPAREN, lexer_get_current_char_as_string(lexer))); break;
-            case '{': return lexer_advance_with_token(lexer, init_token(TOKEN_LBRACE, lexer_get_current_char_as_string(lexer))); break;
-            case '}': return lexer_advance_with_token(lexer, init_token(TOKEN_RBRACE, lexer_get_current_char_as_string(lexer))); break;
-            case ',': return lexer_advance_with_token(lexer, init_token(TOKEN_COMMA, lexer_get_current_char_as_string(lexer))); break;
+            case '=': return advance_with_token(lexer, init_token(TOKEN_EQUAL, get_current_char_as_str(lexer))); break;
+            case ';': return advance_with_token(lexer, init_token(TOKEN_SEMICOLON, get_current_char_as_str(lexer))); break;
+            case '(': return advance_with_token(lexer, init_token(TOKEN_LTONDA, get_current_char_as_str(lexer))); break;
+            case ')': return advance_with_token(lexer, init_token(TOKEN_RTONDA, get_current_char_as_str(lexer))); break;
+            case '{': return advance_with_token(lexer, init_token(TOKEN_LGRAFFA, get_current_char_as_str(lexer))); break;
+            case '}': return advance_with_token(lexer, init_token(TOKEN_RGRAFFA, get_current_char_as_str(lexer))); break;
+            case ',': return advance_with_token(lexer, init_token(TOKEN_VIGOLA, get_current_char_as_str(lexer))); break;
         }
     }
 
     return init_token(TOKEN_EOF, "\0");
 }
 
-token_T* lexer_collect_string(lexer_T* lexer)
+Token* collect_str(Lexer* lexer)
 {
-    lexer_advance(lexer);
+    advance(lexer);
 
     char* value = calloc(1, sizeof(char));
     value[0] = '\0';
 
     while (lexer->c != '"')
     {
-        char* s = lexer_get_current_char_as_string(lexer);
+        char* s = get_current_char_as_str(lexer);
         value = realloc(value, (strlen(value) + strlen(s) + 1) * sizeof(char));
         strcat(value, s);
 
-        lexer_advance(lexer);
+        advance(lexer);
     }
 
-    lexer_advance(lexer);
+    advance(lexer);
 
-    return init_token(TOKEN_STRING, value);
+    return init_token(TOKEN_STR, value);
 }
 
-token_T* lexer_collect_id(lexer_T* lexer)
+Token* collect_id(Lexer* lexer)
 {
     char* value = calloc(1, sizeof(char));
     value[0] = '\0';
 
     while (isalnum(lexer->c))
     {
-        char* s = lexer_get_current_char_as_string(lexer);
+        char* s = get_current_char_as_str(lexer);
         value = realloc(value, (strlen(value) + strlen(s) + 1) * sizeof(char));
         strcat(value, s);
 
-        lexer_advance(lexer);
+        advance(lexer);
     }
 
     return init_token(TOKEN_ID, value);
 }
 
-token_T* lexer_advance_with_token(lexer_T* lexer, token_T* token)
+Token* advance_with_token(Lexer* lexer, Token* token)
 {
-    lexer_advance(lexer);
+    advance(lexer);
 
     return token;
 }
 
-char* lexer_get_current_char_as_string(lexer_T* lexer)
+char* get_current_char_as_str(Lexer* lexer)
 {
     char* str = calloc(2, sizeof(char));
     str[0] = lexer->c;

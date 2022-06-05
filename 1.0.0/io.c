@@ -1,9 +1,9 @@
-#include "include/io.h"
+#include "lib/io.h"
 #include <stdlib.h>
 #include <stdio.h>
 
 
-char* get_file_contents(const char* filepath)
+char* file_contents(const char* filepath)
 {
     char* buffer = 0;
     long length;
@@ -25,6 +25,6 @@ char* get_file_contents(const char* filepath)
         return buffer;
     }
 
-    printf("Error reading file %s\n", filepath);
+    printf("Errore: file %s non leggibile\n", filepath);
     exit(2);
 }
