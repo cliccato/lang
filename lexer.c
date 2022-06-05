@@ -1,6 +1,9 @@
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
+#include <stdio.h>
 #include "lib/lexer.h"
+//#include "lib/token.h"
 
 Lexer* init_lexer(char* conts) {
     Lexer* lexer = calloc(1, sizeof(struct LEXER_STRUCT));
@@ -8,6 +11,7 @@ Lexer* init_lexer(char* conts) {
     lexer->i = 0;
     lexer->c = conts[lexer->i];
 
+    //printf("%c", lexer->c);
     return lexer;
 }
 
@@ -18,6 +22,8 @@ void advance(Lexer* lexer) {
         lexer->i += 1;
         lexer->c = lexer->conts[lexer->i];
     }
+
+    //printf("%c", lexer->c);
 }
 
 void skip(Lexer* lexer) {
@@ -69,9 +75,10 @@ Token* get_token(Lexer* lexer) {
                 token = init_token(T_RGRAFFA, current_char(lexer));
                 return advance_token(lexer, token);
                 break;
-            default: return init_token(T_EOF, "\0");break;
         }
     }
+
+    return init_token(T_EOF, "\0");
 }
 
 char* current_char(Lexer* lexer) {
@@ -115,9 +122,7 @@ Token* get_string(Lexer* lexer) {
     return init_token(T_STRING, string);
 }
 
-/*
 Token* string(Lexer* lexer) {
 
 }
-*/
 

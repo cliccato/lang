@@ -30,36 +30,38 @@ Ast* parse(Parser* parser, Scope* scope) {
 }
 
 Ast* parse_statement(Parser* parser, Scope* scope) {
-    if(parser->current_token->type == T_ID) {
-        return parse_id(parser, scope);
-    } else {
-        return init_ast(AST_NOOP);
+
+    switch (parser->current_token->type)
+    {
+        case T_ID: return parse_id(parser, scope);
     }
+
+    return init_ast(AST_NOOP);
 }
 
 Ast* parse_statements(Parser* parser, Scope* scope) {
     Ast* compound = init_ast(AST_COMP);
-    Ast* statement = parse_statement(parser, scope);
 
     compound->scope = scope;
     compound->comp_val = calloc(1, sizeof(struct AST_STRUCT*));
+    Ast* statement = parse_statement(parser, scope);
     statement->scope = scope;
     compound->comp_val[0] = statement;
     compound->comp_size += 1;
 
-    while (parser->current_token->type == T_SEMICOLON)
-    {
+    while (parser->current_token->type == T_SEMICOLON) {
+        printf("%d", compound->type);
         eat(parser, T_SEMICOLON);
+        printf("eatttt");
+        Ast* statement = parse_statement(parser, scope);
 
-        Ast* ast_statement = parse_statement(parser, scope);
-
-        if (ast_statement) {
+        if (statement) {
             compound->comp_size += 1;
             compound->comp_val = realloc(compound->comp_val, compound->comp_size * sizeof(struct AST_STRUCT*));
-            compound->comp_val[compound->comp_size-1] = ast_statement;
+            compound->comp_val[compound->comp_size-1] = statement;
         }
     }
-
+    printf("test");
     return compound;
 }
 
@@ -72,13 +74,9 @@ Ast* parse_expr(Parser* parser, Scope* scope) {
     return init_ast(AST_NOOP);
 }
 
-/*
 Ast* parse_factor(Parser* parser, Scope* scope) {
 
 }
-
-*/
-
 
 Ast* parse_fun(Parser* parser, Scope* scope) {
     Ast* fun_call = init_ast(AST_FUN);
@@ -147,7 +145,7 @@ Ast* parse_fundef(Parser* parser, Scope* scope) {
         eat(parser, T_VIRGOLA);
 
         ast->fundef_args_size += 1;
-        ast->fundef_args_size = realloc(ast->fundef_args, ast->fundef_args_size * sizeof(struct AST_STRUCT*));
+        ast->fundef_args = realloc(ast->fundef_args, ast->fundef_args_size * sizeof(struct AST_STRUCT*));
 
         Ast* arg = parse_var(parser, scope);
         ast->fundef_args[ast->fundef_args_size-1] = arg;
@@ -164,7 +162,7 @@ Ast* parse_fundef(Parser* parser, Scope* scope) {
 
 Ast* parse_var(Parser* parser, Scope* scope) {
     char* value = parser->current_token->value;
-    eat(parser, T_ID); // var name or function call name
+    eat(parser, T_ID);
 
     if (parser->current_token->type == T_LTONDA) {
         return parse_fun(parser, scope);
@@ -191,18 +189,17 @@ Ast* parse_str(Parser* parser, Scope* scope) {
 Ast* parse_id(Parser* parser, Scope* scope) {
     if (strcmp(parser->current_token->value, "var") == 0) {
         return parse_vardef(parser, scope);
-    } else {
-        if (strcmp(parser->current_token->value, "func") == 0) {
-            return parse_fundef(parser, scope);
-        } else {
-            return parse_var(parser, scope);
-        }
+    }
+    else
+    if (strcmp(parser->current_token->value, "function") == 0) {
+        return parse_fundef(parser, scope);
+    }
+    else {
+        return parse_var(parser, scope);
     }
 }
 
 
-/*
 Ast* parse_term(Parser* parser, Scope* scope) {
 
 }
-*/

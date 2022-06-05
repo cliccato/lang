@@ -1,1 +1,1 @@
-gcc main.c lexer.c -o mc.exe
+gcc lib/*.h *.c -o mc.exe --no-warnings
